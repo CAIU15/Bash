@@ -29,10 +29,11 @@ checkFileSize () {
 	select yn in "Yes" "No"; do
 		case $yn in
 			Yes ) doRsync; break;;
-			No ) break;;
+			No ) {
+				echo ${RED}Transfer process aborted${NC}
+			}; break;;
 		esac
 	done
-
 }
 createBackups () {
 	echo Creating backups...
@@ -47,6 +48,21 @@ createBackups () {
 	echo -e ${GREEN}Created successfully!${NC}
 	echo Backups completed, begin configuration
 	}
+doRsync () {
+	read -p "Input local path to copy data: " localPath
+	echo "This is the last time you will be able to stop rsync gracefully until it completes. Proceed?"
+	select yn in "Yes" "No"; do
+		case $yn in
+			Yes ) {
+				rsync -chavzP -e --info=progress2 ${remoteUser}@${remoteHost}:${remotePath} $localPath
+				echo ${GREEN}Transfer process complete!${NC}
+			}; break;;
+			No ) {
+				echo ${RED}Transfer process aborted${NC}
+			}; break;;
+		esac
+	done
+}
 setHostname () {
 	read -p 'Input desired hostname: CAIU-Moodle-' newHost
 	echo Setting system hostname to CAIU-Moodle-$newHost
@@ -83,26 +99,32 @@ echo "Perform backups before proceeding?"
 select yn in "Yes" "No"; do
 	case $yn in
 		Yes ) createBackups; break;;
-		No ) break;;
+		No ) {
+			echo -e ${YELLOW}Skipping backups${NC}
+		}; break;;
 	esac
 done
 echo .....................
-# User defines variables beyond this point
 echo -e Current IP Address is ${YELLOW}$ipAddr ${NC}and will need to be changed.
 # Backup any files that will be touched with this script
 echo "New IP will be set. Proceed?"
 select yn in "Yes" "No"; do
 	case $yn in
 		Yes ) setIP; break;;
-		No ) break;;
+		No ) {
+			echo -e ${YELLOW}IP address remains unchanged${NC}
+		}; break;;
 	esac
 done
+echo .....................
 echo -e Current Hostname is ${YELLOW}$curHost ${NC}and will need to be changed.
 echo "New hostname will be set. Proceed?"
 select yn in "Yes" "No"; do
 	case $yn in
 		Yes ) setHostname; break;;
-		No ) break;;
+		No ) {
+			echo -e ${YELLOW}Hostname remains unchanged${NC}
+		}; break;;
 	esac
 done
 echo .....................
@@ -111,18 +133,26 @@ echo "This action will create a user and build a new database. Proceed?"
 select yn in "Yes" "No"; do
 	case $yn in
 		Yes ) buildMySQL; break;;
-		No ) break;;
+		No ) {
+			echo -e ${YELLOW}No MySQL alterations made${NC}
+		}; break;;
 	esac
 done
 echo .....................
 echo Migration will now prepare to sync files from remote host to this machine
+echo -e ${YELLOW}-----------------------------------${NC}
 echo -e ${YELLOW}Warning! Warning! Warning! Warning!${NC}
+echo -e ${YELLOW}-----------------------------------${NC}
 echo Please ensure that any mounts are active prior to procceding. If you are missing any
 echo mount points, please re-run this script after creating them in /etc/fstab
+echo -----------------------------------
 echo "Proceed with data migration (this may take some time)?"
 select yn in "Yes" "No"; do
 	case $yn in
 		Yes ) checkFileSize; break;;
-		No ) break;;
+		No ) {
+			echo -e ${YELLOW}Skipping data transfer${NC}
+		}; break;;
 	esac
 done
+echo -----------------------------------
